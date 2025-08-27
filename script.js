@@ -6193,87 +6193,86 @@ function findAssetByBarcode(barcodeContent) {
   }
 }
 
-// Fungsi untuk menampilkan detail barcode (VERSI DIPERBAIKI)
 async function viewQrCodeDetail(qrId) {
-  try {
-    await loadBarcodeLibrary();
+  const qrCode = qrCodeData.find((q) => q.id_qrCode === qrId); // Temukan data QR berdasarkan ID-nya
+  if (!qrCode) {
+    showToast("QR Code tidak ditemukan", "error");
+    return;
+  }
 
-    const qrCode = qrCodeData.find((b) => b.id_qrCode === qrId);
-    if (!qrCode) {
-      showToast("QR Code tidak ditemukan", "error");
-      return;
-    }
+  // Temukan aset yang terhubung menggunakan ID dari data QR
+  const asset = assets.find((a) => a.id === qrCode.aset_terhubung);
 
-    const asset = assets.find((a) => a.id === barcode.aset_terhubung);
+  const modal = document.getElementById("qrCodeDetailModal");
+  const content = document.getElementById("qrCodeDetailContent");
 
-    const modal = document.getElementById("barcodeDetailModal");
-    const content = document.getElementById("barcodeDetailContent");
+  if (!modal || !content) return;
 
-    if (!modal || !content) return;
-
-    let assetInfoHtml = asset
-      ? `<p><strong>Nama Aset:</strong> ${asset.name}</p>
+  // Siapkan informasi aset, tangani jika aset sudah dihapus
+  let assetInfoHtml = asset
+    ? `<p><strong>Nama Aset:</strong> ${asset.name}</p>
          <p><strong>ID Aset:</strong> ${asset.id}</p>
          <p><strong>Lokasi:</strong> ${asset.location}</p>`
-      : `<p style="color:red;">Aset terkait dengan barcode ini telah dihapus dari sistem.</p>`;
+    : `<p style="color:red;">Aset yang terhubung dengan QR Code ini sudah tidak ada.</p>`;
 
-    let actionButtonHtml =
-      barcode.status === "Aktif"
-        ? `<button class="btn btn-danger" onclick="deactivateBarcode('${barcode.id_barcode}')">Nonaktifkan</button>`
-        : `<button class="btn btn-success" onclick="reactivateBarcode('${barcode.id_barcode}')">Aktifkan Kembali</button>`;
+  // Siapkan tombol aksi berdasarkan status QR Code
+  let actionButtonHtml =
+    qrCode.status === "Aktif"
+      ? `<button class="btn btn-danger" onclick="toggleQrCodeStatus('${qrCode.id_qrCode}')">Nonaktifkan</button>`
+      : `<button class="btn btn-success" onclick="toggleQrCodeStatus('${qrCode.id_qrCode}')">Aktifkan Kembali</button>`;
 
-    content.innerHTML = `
-      <div class="barcode-detail">
-        <h4>Informasi Barcode</h4>
-        <p><strong>ID Barcode:</strong> ${barcode.id_barcode}</p>
-        <p><strong>Kode:</strong> ${barcode.isi_barcode}</p>
+  content.innerHTML = `
+      <div class="qr-code-detail">
+        <h4>Informasi QR Code</h4>
+        <p><strong>ID QR Code:</strong> ${qrCode.id_qrCode}</p>
+        <p><strong>Isi Kode:</strong> ${qrCode.isi_kode}</p>
         <p><strong>Tanggal Dibuat:</strong> ${formatDate(
-          barcode.tanggal_dibuat
+          qrCode.tanggal_dibuat
         )}</p>
         <p><strong>Status:</strong> <span class="status-badge ${
-          barcode.status === "Aktif" ? "available" : "maintenance"
-        }">${barcode.status}</span></p>
+          qrCode.status === "Aktif" ? "available" : "maintenance"
+        }">${qrCode.status}</span></p>
         <hr>
         <h4>Aset Terhubung</h4>
         ${assetInfoHtml}
-        <div style="text-align: center; margin: 1.5rem 0;">
-          <canvas id="barcodePreviewCanvas"></canvas>
+        <div style="text-align: center; margin: 1.5rem 0; padding:10px; background:white; display:inline-block; border-radius:8px;">
+          <div id="qrCodePreviewCanvas"></div>
         </div>
         <div class="btn-group">
-          <button class="btn btn-secondary" onclick="closeModal('barcodeDetailModal')">Tutup</button>
-          <button class="btn btn-primary" onclick="printBarcode('${
-            barcode.isi_barcode
+          <button class="btn btn-secondary" onclick="closeModal('qrCodeDetailModal')">Tutup</button>
+          <button class="btn btn-primary" onclick="printQrCode('${
+            qrCode.isi_kode
           }')">Cetak</button>
           ${actionButtonHtml}
         </div>
       </div>
     `;
 
-    // Generate visual barcode (sekarang library sudah pasti tersedia)
-    JsBarcode("#barcodePreviewCanvas", barcode.isi_barcode, {
-      format: "CODE128",
-      displayValue: true,
-      fontSize: 18,
-      height: 100,
+  // Generate QR Code di dalam modal
+  setTimeout(() => {
+    new QRCode(document.getElementById("qrCodePreviewCanvas"), {
+      text: `${window.location.origin}/detail.html?qrcode=${qrCode.isi_kode}`,
+      width: 128,
+      height: 128,
     });
+  }, 100);
 
-    modal.classList.add("active");
-  } catch (error) {
-    console.error("Gagal memuat library barcode:", error);
-    showToast("Gagal memuat fitur barcode", "error");
-  }
+  modal.classList.add("active");
 }
 
-// Fungsi untuk mengaktifkan kembali barcode
-function reactivateBarcode(barcodeId) {
-  const barcodeIndex = barcodeData.findIndex((b) => b.id_barcode === barcodeId);
-  if (barcodeIndex !== -1) {
-    barcodeData[barcodeIndex].status = "Aktif";
-    showToast("Barcode berhasil diaktifkan kembali");
-    closeModal("barcodeDetailModal");
-    return true;
+// Fungsi BARU untuk mengubah status aktif/nonaktif
+function toggleQrCodeStatus(qrId) {
+  const qrIndex = qrCodeData.findIndex((q) => q.id_qrCode === qrId);
+  if (qrIndex !== -1) {
+    const currentStatus = qrCodeData[qrIndex].status;
+    qrCodeData[qrIndex].status =
+      currentStatus === "Aktif" ? "Nonaktif" : "Aktif";
+    showToast(
+      `Status QR Code berhasil diubah menjadi ${qrCodeData[qrIndex].status}`
+    );
+    closeModal("qrCodeDetailModal");
+    loadQrCodeTable(); // Muat ulang tabel untuk melihat perubahan
   }
-  return false;
 }
 
 // Fungsi untuk memuat tabel manajemen QR Code
@@ -6294,15 +6293,23 @@ function loadQrCodeTable() {
       <tr>
         <td><strong>${qr.id_qrCode}</strong></td>
         <td>${qr.isi_kode}</td>
-        <td>${asset ? asset.name : '<span style="color:red;">Aset Dihapus</span>'}</td>
+        <td>${
+          asset ? asset.name : '<span style="color:red;">Aset Dihapus</span>'
+        }</td>
         <td>${asset ? asset.id : "N/A"}</td>
         <td>${formatDate(qr.tanggal_dibuat)}</td>
         <td><span class="status-badge ${statusClass}">${qr.status}</span></td>
         <td>
           <div class="action-buttons">
-            <button class="btn btn-primary" onclick="viewQrCodeDetail('${qr.id_qrCode}')">Detail</button>
-            <button class="btn btn-secondary" onclick="printQrCode('${qr.isi_kode}')">Cetak</button>
-            <button class="btn btn-danger" onclick="deleteQrCode('${qr.id_qrCode}')">Hapus</button>
+            <button class="btn btn-primary" onclick="viewQrCodeDetail('${
+              qr.id_qrCode
+            }')">Detail</button>
+            <button class="btn btn-secondary" onclick="printQrCode('${
+              qr.isi_kode
+            }')">Cetak</button>
+            <button class="btn btn-danger" onclick="deleteQrCode('${
+              qr.id_qrCode
+            }')">Hapus</button>
           </div>
         </td>
       </tr>
@@ -6329,25 +6336,69 @@ if (barcodeSearch) {
   barcodeSearch.addEventListener("input", searchBarcodes);
 }
 
-function searchBarcodes() {
-  const searchField = document.getElementById("barcodeSearch");
-  const searchTerm = searchField.value.toLowerCase().trim();
-  const tableBody = document.getElementById("barcodeTable");
+function searchQrCodes() {
+  const searchTerm = document
+    .getElementById("qrCodeSearch")
+    .value.toLowerCase()
+    .trim();
+  const tableBody = document
+    .getElementById("qrCodeTable")
+    .querySelector("tbody");
   if (!tableBody) return;
 
-  // Jika input kosong, tampilkan semua barcode
-  if (searchTerm === "") {
-    loadBarcodeTable();
+  // Filter data QR berdasarkan pencarian
+  const filteredData = qrCodeData.filter((qr) => {
+    const asset = assets.find((a) => a.id === qr.aset_terhubung);
+    return (
+      qr.isi_kode.toLowerCase().includes(searchTerm) ||
+      qr.id_qrCode.toLowerCase().includes(searchTerm) ||
+      (asset && asset.name.toLowerCase().includes(searchTerm))
+    );
+  });
+
+  // Kosongkan tabel
+  tableBody.innerHTML = "";
+
+  if (filteredData.length === 0) {
+    tableBody.innerHTML = `<tr><td colspan="7" style="text-align: center;">Tidak ada data QR Code yang cocok.</td></tr>`;
     return;
   }
 
-  // Filter barcode berdasarkan input
-  const filteredBarcodes = barcodeData.filter((barcode) =>
-    barcode.isi_barcode.toLowerCase().includes(searchTerm)
-  );
-
-  // Tampilkan hasil pencarian
-  displayFilteredBarcodes(filteredBarcodes);
+  // Tampilkan data yang sudah difilter
+  filteredData.forEach((qr) => {
+    const asset = assets.find((a) => a.id === qr.aset_terhubung);
+    const statusClass = qr.status === "Aktif" ? "available" : "maintenance";
+    const row = `
+          <tr>
+            <td><strong>${qr.id_qrCode}</strong></td>
+            <td>${qr.isi_kode}</td>
+            <td>${
+              asset
+                ? asset.name
+                : '<span style="color:red;">Aset Dihapus</span>'
+            }</td>
+            <td>${asset ? asset.id : "N/A"}</td>
+            <td>${formatDate(qr.tanggal_dibuat)}</td>
+            <td><span class="status-badge ${statusClass}">${
+      qr.status
+    }</span></td>
+            <td>
+              <div class="action-buttons">
+                <button class="btn btn-primary" onclick="viewQrCodeDetail('${
+                  qr.id_qrCode
+                }')">Detail</button>
+                <button class="btn btn-secondary" onclick="printQrCode('${
+                  qr.isi_kode
+                }')">Cetak</button>
+                <button class="btn btn-danger" onclick="deleteQrCode('${
+                  qr.id_qrCode
+                }')">Hapus</button>
+              </div>
+            </td>
+          </tr>
+        `;
+    tableBody.innerHTML += row;
+  });
 }
 
 function displayFilteredBarcodes(filteredBarcodes) {
@@ -6443,52 +6494,59 @@ function printQrCode(uniqueCode) {
     return;
   }
   const assetUrl = `${window.location.origin}/detail.html?qrcode=${uniqueCode}`;
-  const printWindow = window.open("", "_blank");
-  printWindow.document.write(`
-    <html>
-      <head>
-        <title>Cetak QR Code - ${asset.name}</title>
-        <style>
-          @media print {
-            @page { size: 70mm 45mm; margin: 0; }
-            body { margin: 0; padding: 2mm; font-family: 'Arial', sans-serif; font-size: 8pt; color: #000; display: flex; flex-direction: column; justify-content: center; align-items: center; width: 70mm; height: 45mm; }
-            .label-container { text-align: center; }
-            .institution-name { font-weight: bold; font-size: 7pt; margin: 0; }
-            .asset-name { font-weight: bold; font-size: 9pt; margin: 1mm 0; }
-            #qrcode { margin-top: 2mm; }
-            #qrcode img { width: 30mm; height: 30mm; }
-            .code-number { font-size: 7pt; letter-spacing: 1px; margin-top: 1mm; }
-            .no-print { display: none; }
-          }
-        </style>
-      </head>
-      <body>
-        <div class="label-container">
-          <div class="institution-name">Inventaris STT Indonesia Cirebon</div>
-          <div class="asset-name">${asset.name}</div>
-          <div id="qrcode"></div>
-          <div class="code-number">${asset.qrcode}</div>
-        </div>
-        <div class="no-print">
-          <button onclick="window.print()">Cetak</button>
-          <button onclick="window.close()">Tutup</button>
-        </div>
-        <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"><\/script>
-        <script>
-          window.onload = function() {
-            new QRCode(document.getElementById("qrcode"), {
-              text: "${assetUrl}",
-              width: 128,
-              height: 128,
-              correctLevel: QRCode.CorrectLevel.H
-            });
-            setTimeout(() => { window.print(); setTimeout(() => { window.close(); }, 300); }, 500);
-          };
-        <\/script>
-      </body>
-    </html>
-  `);
-  printWindow.document.close();
+
+  // Buat iframe tersembunyi
+  const iframe = document.createElement("iframe");
+  iframe.style.display = "none";
+  document.body.appendChild(iframe);
+
+  const printDocument = iframe.contentWindow.document;
+
+  // Tulis konten HTML ke dalam iframe
+  printDocument.open();
+  printDocument.write(`
+        <html>
+            <head>
+                <title>Cetak QR Code - ${asset.name}</title>
+                <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"><\/script>
+                <style>
+                    @page { size: 70mm 45mm; margin: 0; }
+                    body { margin: 0; padding: 2mm; font-family: 'Arial', sans-serif; font-size: 8pt; display: flex; flex-direction: column; justify-content: center; align-items: center; width: 70mm; height: 45mm; }
+                    .label-container { text-align: center; }
+                    .institution-name { font-weight: bold; font-size: 7pt; margin: 0; }
+                    .asset-name { font-weight: bold; font-size: 9pt; margin: 1mm 0; }
+                    #qrcode { margin-top: 2mm; }
+                    #qrcode img { width: 30mm !important; height: 30mm !important; }
+                    .code-number { font-size: 7pt; letter-spacing: 1px; margin-top: 1mm; }
+                </style>
+            </head>
+            <body>
+                <div class="label-container">
+                    <div class="institution-name">Inventaris STT Indonesia Cirebon</div>
+                    <div class="asset-name">${asset.name}</div>
+                    <div id="qrcode"></div>
+                    <div class="code-number">${asset.qrcode}</div>
+                </div>
+                <script>
+                    window.onload = function() {
+                        new QRCode(document.getElementById("qrcode"), {
+                            text: "${assetUrl}",
+                            width: 128,
+                            height: 128,
+                            correctLevel: QRCode.CorrectLevel.H
+                        });
+                        // Tunggu QR Code selesai render sebelum mencetak
+                        setTimeout(() => {
+                            window.focus(); // Fokus ke iframe
+                            window.print(); // Cetak konten iframe
+                            window.parent.document.body.removeChild(window.frameElement); // Hapus iframe setelah cetak
+                        }, 500);
+                    };
+                <\/script>
+            </body>
+        </html>
+    `);
+  printDocument.close();
 }
 
 function editAsset(id) {
@@ -6496,26 +6554,30 @@ function editAsset(id) {
 }
 
 function deleteAsset(id) {
-    if (confirm("Apakah Anda yakin ingin menghapus aset ini? Data QR Code terkait juga akan dihapus.")) {
-        const assetIndex = assets.findIndex(asset => asset.id === id);
-        if (assetIndex > -1) {
-            const assetQrCode = assets[assetIndex].qrcode;
-            
-            // Hapus aset dari array assets
-            assets.splice(assetIndex, 1);
+  if (
+    confirm(
+      "Apakah Anda yakin ingin menghapus aset ini? Data QR Code terkait juga akan dihapus."
+    )
+  ) {
+    const assetIndex = assets.findIndex((asset) => asset.id === id);
+    if (assetIndex > -1) {
+      const assetQrCode = assets[assetIndex].qrcode;
 
-            // Hapus data QR Code terkait dari qrCodeData
-            const qrIndex = qrCodeData.findIndex(qr => qr.isi_kode === assetQrCode);
-            if (qrIndex > -1) {
-                qrCodeData.splice(qrIndex, 1);
-            }
+      // Hapus aset dari array assets
+      assets.splice(assetIndex, 1);
 
-            loadAssetsTable();
-            updateStatistics();
-            updateAssetChart();
-            showToast("Aset dan data QR Code terkait berhasil dihapus!");
-        }
+      // Hapus data QR Code terkait dari qrCodeData
+      const qrIndex = qrCodeData.findIndex((qr) => qr.isi_kode === assetQrCode);
+      if (qrIndex > -1) {
+        qrCodeData.splice(qrIndex, 1);
+      }
+
+      loadAssetsTable();
+      updateStatistics();
+      updateAssetChart();
+      showToast("Aset dan data QR Code terkait berhasil dihapus!");
     }
+  }
 }
 
 function generateUniqueCode(prefix = "AST") {
@@ -6524,27 +6586,19 @@ function generateUniqueCode(prefix = "AST") {
   return `${prefix}-${timestamp}-${randomStr}`;
 }
 
-// Tambahkan fungsi untuk generate barcode dari modal aset
-function generateCodeFromAssetModal() {
+function generateQrCodeFromAssetModal() {
   const assetTypeField = document.getElementById("assetType");
   const serialField = document.getElementById("assetSerial");
   if (!assetTypeField.value) {
     showToast("Pilih jenis aset terlebih dahulu", "error");
     return;
   }
-  const prefixMap = {
-    ELK: "ELK",
-    KOM: "KOM",
-    JAR: "JAR",
-    FUR: "FUR",
-    ATK: "ATK",
-    LAN: "LAN",
-  };
   const prefix = assetTypeField.value || "AST";
   const uniqueCode = generateUniqueCode(prefix);
-  if (!serialField.value) {
-    serialField.value = uniqueCode;
-  }
+
+  // Selalu isi field dengan kode baru, tidak peduli sudah ada isinya atau belum
+  serialField.value = uniqueCode;
+
   showToast(`Kode unik berhasil dibuat: ${uniqueCode}`, "success");
 }
 
@@ -6668,15 +6722,17 @@ function simulateBarcodeDetection(video) {
 
 async function exportQrCodesToPDF() {
   // Cek apakah jsPDF sudah ada, jika tidak, muat skripnya
-  if (typeof window.jspdf === 'undefined') {
+  if (typeof window.jspdf === "undefined") {
     showToast("Memuat library PDF...", "info");
-    await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
+    await loadScript(
+      "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"
+    );
   }
-  
+
   showLoading();
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
-  
+
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 10;
   const labelWidth = (pageWidth - margin * 4) / 3;
@@ -6686,35 +6742,38 @@ async function exportQrCodesToPDF() {
   let count = 0;
 
   for (const asset of assets) {
-    if (count > 0 && count % 18 === 0) { // 18 label per halaman (3x6)
+    if (count > 0 && count % 18 === 0) {
+      // 18 label per halaman (3x6)
       doc.addPage();
       x = margin;
       y = margin;
     }
 
     // Buat canvas sementara untuk QR Code
-    const qrCanvas = document.createElement('div');
+    const qrCanvas = document.createElement("div");
     const assetUrl = `${window.location.origin}/detail.html?qrcode=${asset.qrcode}`;
     new QRCode(qrCanvas, {
       text: assetUrl,
       width: 80,
       height: 80,
-      correctLevel: QRCode.CorrectLevel.H
+      correctLevel: QRCode.CorrectLevel.H,
     });
-    
+
     // Tunggu QR Code render
-    await new Promise(resolve => setTimeout(resolve, 50)); 
-    
-    const qrImg = qrCanvas.querySelector('img').src;
-    
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    const qrImg = qrCanvas.querySelector("img").src;
+
     // Gambar label
     doc.setFontSize(7);
-    doc.text(asset.name.substring(0, 25), x + 2, y + 4, { maxWidth: labelWidth - 4 });
-    doc.addImage(qrImg, 'PNG', x + (labelWidth/2) - 10, y + 6, 20, 20);
+    doc.text(asset.name.substring(0, 25), x + 2, y + 4, {
+      maxWidth: labelWidth - 4,
+    });
+    doc.addImage(qrImg, "PNG", x + labelWidth / 2 - 10, y + 6, 20, 20);
     doc.setFontSize(6);
-    doc.text(asset.qrcode, x + labelWidth / 2, y + 30, { align: 'center' });
+    doc.text(asset.qrcode, x + labelWidth / 2, y + 30, { align: "center" });
     doc.rect(x, y, labelWidth, labelHeight);
-    
+
     // Pindah ke posisi label berikutnya
     x += labelWidth + margin;
     if ((count + 1) % 3 === 0) {
@@ -6743,91 +6802,93 @@ function findAssetByBarcodeContent(barcodeContent) {
   return null;
 }
 
-// Modifikasi fungsi saveAsset untuk membuat barcode data
+// Ganti fungsi lama dengan yang ini
+function generateQrCodeFromAssetModal() {
+  const assetTypeField = document.getElementById("assetType");
+  const serialField = document.getElementById("assetSerial");
+  if (!assetTypeField.value) {
+    showToast("Pilih jenis aset terlebih dahulu", "error");
+    return;
+  }
+  const prefix = assetTypeField.value || "AST";
+  const uniqueCode = generateUniqueCode(prefix);
+
+  // Selalu isi field dengan kode baru, tidak peduli sudah ada isinya atau belum
+  serialField.value = uniqueCode;
+
+  showToast(`Kode unik berhasil dibuat: ${uniqueCode}`, "success");
+}
+
 function saveAsset(event) {
   event.preventDefault();
-
   if (!validateForm("assetForm")) return;
-
-  const saveBtn = document.getElementById("saveAssetBtn");
-  if (saveBtn) {
-    saveBtn.classList.add("loading");
-    saveBtn.disabled = true;
-  }
 
   showLoading();
 
-  // Simulate async operation
   setTimeout(() => {
     const typeMapping = {
-      ELK: "Elektronik",
+      ELK: "Elektronik Umum",
+      KOM: "Komputer & Periferal",
+      JAR: "Jaringan",
       FUR: "Furniture",
-      KDR: "Kendaraan",
-      ATK: "Alat Tulis",
+      ATK: "Alat & Perkakas",
       LAN: "Lainnya",
     };
 
-  const assetType = document.getElementById("assetType").value;
-  const assetName = document.getElementById("assetName").value;
-  const assetImageInput = document.getElementById("assetImage");
-  const uniqueCode = document.getElementById("assetSerial").value || generateUniqueCode(assetType);
+    const assetType = document.getElementById("assetType").value;
+    const assetName = document.getElementById("assetName").value;
+    const assetImageInput = document.getElementById("assetImage");
+    // Gunakan nilai dari field serial, jika kosong baru generate
+    const uniqueCode =
+      document.getElementById("assetSerial").value ||
+      generateUniqueCode(assetType);
 
-  let assetImageUrl = `https://via.placeholder.com/400x300/e2e8f0/64748b?text=${encodeURIComponent(assetName)}`;
-
-
-    // Handle image upload
+    let assetImageUrl = `https://via.placeholder.com/400x300/e2e8f0/64748b?text=${encodeURIComponent(
+      assetName
+    )}`;
     if (assetImageInput && assetImageInput.files.length > 0) {
-    assetImageUrl = URL.createObjectURL(assetImageInput.files[0]);
-  } else if (editingAssetId) {
-    const existingAsset = assets.find((a) => a.id === editingAssetId);
-    if (existingAsset) assetImageUrl = existingAsset.image;
-  }
-
+      assetImageUrl = URL.createObjectURL(assetImageInput.files[0]);
+    } else if (editingAssetId) {
+      const existingAsset = assets.find((a) => a.id === editingAssetId);
+      if (existingAsset) assetImageUrl = existingAsset.image;
     }
 
-    cconst assetData = {
-    name: assetName,
-    type: assetType,
-    typeName: document.getElementById("assetType").selectedOptions[0].text,
-    brand: document.getElementById("assetBrand").value,
-    serial: document.getElementById("assetSerial").value,
-    price: parseInt(document.getElementById("assetPrice").value),
-    purchaseDate: document.getElementById("assetPurchaseDate").value,
-    location: document.getElementById("assetLocation").value,
-    condition: document.getElementById("assetCondition").value,
-    image: assetImageUrl,
-    qrcode: uniqueCode, // Menggunakan properti qrcode
-  };
+    const assetData = {
+      name: assetName,
+      type: assetType,
+      typeName: typeMapping[assetType],
+      brand: document.getElementById("assetBrand").value,
+      serial: document.getElementById("assetSerial").value, // Serial number bisa berbeda dari qrcode
+      price: parseInt(document.getElementById("assetPrice").value || 0),
+      purchaseDate: document.getElementById("assetPurchaseDate").value,
+      location: document.getElementById("assetLocation").value,
+      condition: document.getElementById("assetCondition").value,
+      image: assetImageUrl,
+      qrcode: uniqueCode,
+    };
 
-     if (editingAssetId) {
-    const assetIndex = assets.findIndex((a) => a.id === editingAssetId);
-    if (assetIndex !== -1) {
-      // Update data QR juga jika kodenya berubah
-      const oldQrCode = assets[assetIndex].qrcode;
-      if (oldQrCode !== uniqueCode) {
-        const qrIndex = qrCodeData.findIndex(qr => qr.isi_kode === oldQrCode);
-        if (qrIndex !== -1) {
-            qrCodeData[qrIndex].isi_kode = uniqueCode;
-        }
+    if (editingAssetId) {
+      const assetIndex = assets.findIndex((a) => a.id === editingAssetId);
+      if (assetIndex !== -1) {
+        assets[assetIndex] = { ...assets[assetIndex], ...assetData };
+        showToast("Aset berhasil diupdate!");
       }
-      assets[assetIndex] = { ...assets[assetIndex], ...assetData };
-      showToast("Aset berhasil diupdate!");
-    }
-  } else {
-    assetData.id = generateAssetId(assetType);
-    assetData.dateAdded = new Date().toISOString().split("T")[0];
-    assetData.status = "Tersedia";
-    
-    // Buat entri baru di qrCodeData
-    createQrCodeData(assetData.id, uniqueCode);
-    assets.push(assetData);
-    showToast("Aset berhasil ditambahkan!");
-  }
+    } else {
+      assetData.id = generateAssetId(assetType);
+      assetData.dateAdded = new Date().toISOString().split("T")[0];
+      assetData.status = "Tersedia";
 
+      createQrCodeData(assetData.id, uniqueCode);
+      assets.push(assetData);
+      showToast("Aset berhasil ditambahkan!");
+    }
+
+    hideLoading();
     closeModal("assetModal");
-  loadAssetsTable();
-  updateStatistics();
-  updateAssetChart();
+    loadAssetsTable();
+    updateStatistics();
+    updateAssetChart();
+  }, 500);
 }
 
 // Borrowing Management Functions
@@ -7338,7 +7399,7 @@ function saveUser(event) {
     level: document.getElementById("userLevel")?.value || "",
     status: "Aktif",
     avatar: userAvatarUrl,
-    email: `${usernameField?.value || ""}@sttc.ac.id`,
+    email: `${usernameField?.value || ""}@stticirebon.ac.id`,
   };
 
   // Check if username already exists
@@ -8037,82 +8098,51 @@ function printReport() {
   const reportPreview = document.getElementById("reportPreview");
   if (!reportPreview) return;
 
-  // Clone the report content
   const reportContent = reportPreview.querySelector(".report-container");
   if (!reportContent) return;
 
-  const printWindow = window.open("", "_blank");
-  printWindow.document.write(`
+  // Ambil hanya konten laporan, tanpa tombol-tombolnya
+  const contentToPrint = reportContent.cloneNode(true);
+  const actionButtons = contentToPrint.querySelector(".btn-group");
+  if (actionButtons) {
+    actionButtons.remove();
+  }
+
+  // Buat iframe tersembunyi
+  const iframe = document.createElement("iframe");
+  iframe.style.display = "none";
+  document.body.appendChild(iframe);
+
+  const printDocument = iframe.contentWindow.document;
+
+  printDocument.open();
+  printDocument.write(`
         <html>
             <head>
                 <title>Laporan Inventaris - ${getReportTitle()}</title>
                 <style>
-                    body {
-                        font-family: "Times New Roman", Times, serif;
-                        margin: 0;
-                        padding: 20px;
-                        color: #000;
-                    }
-                    
-                    .report-header h1 {
-                        font-size: 16pt;
-                        font-weight: bold;
-                        margin: 0;
-                        line-height: 1.2;
-                    }
-                    
-                    .report-header p {
-                        font-size: 10pt;
-                        margin: 5px 0;
-                        line-height: 1.2;
-                    }
-                    
-                    .report-table {
-                        width: 100%;
-                        border-collapse: collapse;
-                        margin-top: 15px;
-                        font-size: 10pt;
-                    }
-                    
-                    .report-table th {
-                        background-color: #f2f2f2;
-                        border: 1px solid #000;
-                        padding: 5px;
-                        text-align: left;
-                        font-weight: bold;
-                    }
-                    
-                    .report-table td {
-                        border: 1px solid #000;
-                        padding: 5px;
-                    }
-                    
-                    @media print {
-                        body {
-                            margin: 0;
-                            padding: 10px;
-                        }
-                        
-                        button {
-                            display: none !important;
-                        }
-                    }
+                    body { font-family: "Times New Roman", Times, serif; margin: 20px; color: #000; }
+                    .report-header h1, .report-header h2 { margin: 0; line-height: 1.2; }
+                    .report-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 10pt; }
+                    .report-table th, .report-table td { border: 1px solid #000; padding: 5px; text-align: left; }
+                    .report-table th { background-color: #f2f2f2; font-weight: bold; }
+                    .report-footer { margin-top: 40px; text-align: right; }
+                    .btn-group { display: none; } /* Sembunyikan tombol di versi cetak */
                 </style>
             </head>
             <body>
-                ${reportContent.innerHTML}
+                ${contentToPrint.innerHTML}
                 <script>
                     window.onload = function() {
+                        window.focus();
                         window.print();
-                        setTimeout(function() {
-                            window.close();
-                        }, 100);
+                        window.parent.document.body.removeChild(window.frameElement);
                     };
-                </script>
+                <\/script>
             </body>
         </html>
     `);
-  printWindow.document.close();
+  printDocument.close();
 }
 
 function getReportTitle() {
@@ -8843,33 +8873,6 @@ function createQrCodeData(assetId, uniqueCode) {
   return newQrCode;
 }
 
-// Fungsi untuk menonaktifkan barcode
-function deactivateBarcode(barcodeId) {
-  const barcodeIndex = barcodeData.findIndex((b) => b.id_barcode === barcodeId);
-  if (barcodeIndex !== -1) {
-    barcodeData[barcodeIndex].status = "Nonaktif";
-    showToast("Barcode berhasil dinonaktifkan!");
-    closeModal("barcodeDetailModal");
-    loadBarcodeTable();
-    return true;
-  }
-  return false;
-}
-
-// Fungsi untuk mengaktifkan kembali barcode
-function reactivateBarcode(barcodeId) {
-  const barcodeIndex = barcodeData.findIndex((b) => b.id_barcode === barcodeId);
-  if (barcodeIndex !== -1) {
-    barcodeData[barcodeIndex].status = "Aktif";
-    showToast("Barcode berhasil diaktifkan kembali!");
-    closeModal("barcodeDetailModal");
-    loadBarcodeTable();
-    return true;
-  }
-  return fal
-se;
-}
-
 // Event Listeners
 document.addEventListener("DOMContentLoaded", function () {
   // Ambil parameter 'barcode' dari URL
@@ -9041,6 +9044,11 @@ document.addEventListener("DOMContentLoaded", function () {
       showPage(page);
     });
   });
+
+  const qrCodeSearchInput = document.getElementById("qrCodeSearch");
+  if (qrCodeSearchInput) {
+    qrCodeSearchInput.addEventListener("input", searchQrCodes);
+  }
 
   // Initialize sticky header
   initHeaderScroll();
