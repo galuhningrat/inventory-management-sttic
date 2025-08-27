@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Detail Aset</title>
+    <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+    <div class="data-table-container detail-card">
+        <div class="table-header">
+            <h3 class="table-title">Detail Informasi Aset</h3>
+        </div>
+        <div id="assetDetailContent" style="padding: 2rem">
+            <p>Memuat informasi aset...</p>
+        </div>
+    </div>
+
+    <script src="script.js"></script> 
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            // 1. Ambil parameter URL
+            const urlParams = new URLSearchParams(window.location.search);
+
+            // 2. Ambil nilai dari parameter 'qrcode' (BUKAN 'barcode')
+            const qrCodeValue = urlParams.get("qrcode");
+
+            const content = document.getElementById("assetDetailContent");
+
+            if (qrCodeValue) {
+                // Pastikan variabel 'assets' dari script.js sudah dimuat
+                if (typeof assets !== 'undefined') {
+                    // 3. Cari aset yang memiliki properti 'qrcode' yang cocok
+                    const asset = assets.find((a) => a.qrcode === qrCodeValue);
+
+                    if (asset) {
+                        // 4. Jika ditemukan, tampilkan detailnya
+                        content.innerHTML = `
+                            <img src="${asset.image || 'assets/default-asset.png'}" alt="${asset.name}" class="detail-image" onerror="this.src='assets/default-asset.png'">
+                            <h4>${asset.name}</h4>
+                            <p><strong>ID Aset:</strong> ${asset.id}</p>
+                            <p><strong>Jenis:</strong> ${asset.typeName}</p>
+                            <p><strong>Merek:</strong> ${asset.brand}</p>
+                            <p><strong>Lokasi:</strong> ${asset.location}</p>
+                            <p><strong>Status:</strong> <span class="status-badge ${asset.status.toLowerCase()}">${asset.status}</span></p>
+                            <p><strong>Kondisi:</strong> ${asset.condition}</p>
+                            <p><strong>Tanggal Beli:</strong> ${new Date(asset.purchaseDate).toLocaleDateString("id-ID")}</p>
+                        `;
+                    } else {
+                        content.innerHTML = "<p>Aset dengan QR Code ini tidak ditemukan.</p>";
+                    }
+                } else {
+                    content.innerHTML = "<p>Gagal memuat data aset. Hubungi administrator.</p>";
+                }
+            } else {
+                content.innerHTML = "<p>Tidak ada QR Code yang terdeteksi di URL.</p>";
+            }
+        });
+    </script>
+</body>
+</html>
