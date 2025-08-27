@@ -1,0 +1,45 @@
+Laporan Masalah Tambahan pada Sistem
+
+Berdasarkan tinjauan terbaru, ditemukan beberapa masalah tambahan yang perlu ditangani:
+
+ Elemen yang Tidak Sesuai pada Halaman Cetak: Tombol "Cetak Laporan", "Export PDF", dan "Export Excel" masih muncul pada halaman cetak. Elemen-elemen ini seharusnya tidak ditampilkan agar tampilan hasil cetak bersih dan profesional.
+
+ Fungsionalitas Pencarian: Kolom pencarian "kode unik" pada halaman Manajemen QR Code masih belum berfungsi. Pengguna tidak dapat melakukan pencarian data berdasarkan kode unik.
+
+ Fungsionalitas Halaman Pemeliharaan
+Pengisian Data Teknisi: Perlu ditambahkan kolom atau bidang input pada halaman Pemeliharaan agar pengguna dapat mengisi nama teknisi yang bertugas.
+
+ Perbaikan Antarmuka Pengguna (UI/UX)
+Header Statis (Sticky Header): Bagian header halaman harus dibuat konstan atau sticky, sehingga tetap terlihat di bagian atas layar meskipun pengguna menggulir ke bawah. Ini akan mempermudah navigasi dan akses menu.
+
+Tombol Navigasi Halaman Manajemen Aset (Konsep Easy Touch dari fitur Vivo y17s):
+Karena halaman Manajemen Aset memiliki data yang sangat banyak, perlu ditambahkan tombol navigasi untuk meningkatkan pengalaman pengguna.
+Mengingat banyaknya data aset, saya akan berikan saran terbaik untuk implementasi Easy Touch pada sistem inventaris berbasis web ini.
+Meskipun konsepnya berasal dari ponsel, kita bisa mengadopsi dan mengadaptasinya agar berfungsi optimal di lingkungan web browser desktop maupun mobile.
+
+1. Desain Tombol dan Lokasi
+Tombol Mengambang: Gunakan tombol kecil berbentuk lingkaran yang "mengambang" di atas konten. Gunakan ikon yang universal dan intuitif, seperti ikon plus (+) untuk tambah data atau ikon menu (tiga titik horizontal/vertikal) untuk menampilkan opsi.
+
+Posisi Konstan: Posisikan tombol ini secara tetap di pojok kanan bawah dengan menggunakan CSS position: fixed;. Ini memastikan tombol selalu terlihat dan mudah diakses, tidak peduli seberapa jauh pengguna menggulir halaman.
+
+Animasi Halus: Berikan sedikit animasi fade-in atau bounce saat halaman dimuat agar tombolnya terlihat lebih hidup dan tidak kaku.
+
+2. Fungsi Utama saat Diklik
+Saat pengguna mengklik tombol ini, akan muncul menu pop-up yang berisi pintasan ke aksi-aksi paling penting. Urutkan berdasarkan frekuensi penggunaan tertinggi.
+
+Tambah Aset Baru: Ikon +. Ini adalah pintasan paling esensial. Saat diklik, bisa memunculkan modal (pop-up) untuk mengisi formulir aset baru tanpa harus pindah halaman.
+
+Pencarian Cepat: Ikon lensa pembesar. Saat diklik, akan mengaktifkan pop-up atau overlay pencarian agar pengguna bisa langsung mencari data dari mana pun posisi scroll-nya.
+
+Gulir ke Atas (Scroll to Top): Ikon panah ke atas. Ini sangat krusial di halaman yang memiliki banyak data. Pengguna bisa langsung kembali ke bagian teratas halaman dengan satu klik.
+
+3. Aksi Tambahan untuk Peningkatan Pengalaman (UX)
+Untuk membuat fitur ini terasa lebih canggih dan berguna, pertimbangkan penambahan fitur-fitur ini:
+
+Filter Data: Tambahkan ikon filter. Ketika diklik, akan memunculkan sidebar kecil atau pop-up untuk opsi filter data yang paling sering digunakan, seperti "Aset Tersedia," "Aset Dipinjam," atau filter berdasarkan kategori.
+
+Aksi Massal: Tambahkan ikon centang. Ketika diklik, halaman akan masuk ke mode "seleksi" di mana pengguna bisa mencentang beberapa aset untuk melakukan aksi massal, seperti ekspor data dalam format PDF atau Excel dan hapus.
+
+Mode Ringkas (Responsive): Pastikan tombol ini bisa beradaptasi. Di layar yang lebih kecil (seperti ponsel), tombol ini bisa digeser ke samping untuk menyembunyikan sebagian ikon agar tidak mengganggu tampilan.
+
+Dengan mengimplementasikan saran-saran ini, sistem inventaris Anda tidak hanya akan lebih fungsional, tapi juga akan memberikan pengalaman pengguna yang jauh lebih modern dan efisien.
